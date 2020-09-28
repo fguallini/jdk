@@ -22,10 +22,10 @@
  */
 
 /* @test
- * @ignore This test has huge disk space requirements
  * @bug 8168628
  * @summary Test extending files to very large sizes without hitting a SIGBUS
  * @requires (os.family == "linux")
+ * @requires (sun.arch.data.model == "64" & os.maxMemory >= 6G)
  * @run main/othervm/timeout=600 -Xms4g -Xmx4g FileExtensionAndMap
  * @run main/othervm/timeout=600 -Xms4g -Xmx4g FileExtensionAndMap true
  */
