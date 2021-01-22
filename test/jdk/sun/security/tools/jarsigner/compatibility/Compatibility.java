@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -806,7 +806,7 @@ public class Compatibility {
         for (String line : outputAnalyzer.getOutput().lines()
                 .toArray(String[]::new)) {
             if (line.isBlank()) {
-                // If line is blank and warning flag is true, it means end of warning
+                // If line is blank and warning flag is true, it is the end of warnings section
                 // This is needed when some info is added after warnings, such as timestamp expiration date
                 if(warning) warning = false;
                 continue;
