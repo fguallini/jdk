@@ -805,7 +805,11 @@ public class Compatibility {
         boolean warning = false;
         for (String line : outputAnalyzer.getOutput().lines()
                 .toArray(String[]::new)) {
-            if (line.isBlank()) continue;
+            if (line.isBlank()) {
+                // If line is blank and warning flag is true, means end of warning
+                if(warning) warning = false;
+                continue;
+            }
             if (Test.JAR_VERIFIED.equals(line)) continue;
             if (line.matches(Test.ERROR + " ?") && expectedExitCode == 0) {
                 System.out.println("verifyingStatus: error: line.matches(" + Test.ERROR + "\" ?\"): " + line);
@@ -835,6 +839,8 @@ public class Compatibility {
                     + "not be able to validate this jar after the signer "
                     + "certificate's expiration date \\([^\\)]+\\) or after "
                     + "any future revocation date[.]") && !tsa) continue;
+
+            if (isWeakDigestAlg(signItem.expectedDigestAlg(), line)) continue;
             if (Test.CERTIFICATE_SELF_SIGNED.equals(line)) continue;
             if (Test.HAS_EXPIRED_CERT_VERIFYING_WARNING.equals(line)
                     && signItem.certInfo.expired) continue;
@@ -842,6 +848,14 @@ public class Compatibility {
             return Status.ERROR; // treat unexpected warnings as error
         }
         return warning ? Status.WARNING : Status.NORMAL;
+    }
+
+    private static boolean isWeakDigestAlg(String alg, String outLine) {
+        if (SHA1.equals(alg)) {
+            return outLine.contains("algorithm is considered a security risk." +
+                    " This algorithm will be disabled in a future update.");
+        }
+        return false;
     }
 
     // Using specified jarsigner to sign the pre-created jar with specified
