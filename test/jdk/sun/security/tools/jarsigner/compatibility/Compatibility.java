@@ -806,7 +806,8 @@ public class Compatibility {
         for (String line : outputAnalyzer.getOutput().lines()
                 .toArray(String[]::new)) {
             if (line.isBlank()) {
-                // If line is blank and warning flag is true, means end of warning
+                // If line is blank and warning flag is true, it means end of warning
+                // This is needed when some info is added after warnings, such as timestamp expiration date
                 if(warning) warning = false;
                 continue;
             }
