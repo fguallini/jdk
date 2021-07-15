@@ -229,7 +229,7 @@ public class RandomTestChiSquared {
 
             if (factory.name().equals("Random")) {
                 testOneRng(factory.create(417), 1);
-            } else {
+            } else if (!factory.name().equals("SecureRandom")) {
                 testOneRng(factory.create(417), 0);
             }
         });
