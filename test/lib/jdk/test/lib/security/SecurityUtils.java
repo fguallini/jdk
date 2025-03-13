@@ -45,6 +45,8 @@ public final class SecurityUtils {
     private enum KeySize{
         RSA(2048),
         DSA(2048),
+        Ed25519(256),
+        EC(256),
         DH(2048);
 
         private final int keySize;
@@ -145,6 +147,8 @@ public final class SecurityUtils {
         return switch (algo) {
             case "RSA" -> KeySize.RSA.keySize;
             case "DSA" -> KeySize.DSA.keySize;
+            case "Ed25519" -> KeySize.Ed25519.keySize;
+            case "EC" -> KeySize.EC.keySize;
             case "DH", "DiffieHellman" -> KeySize.DH.keySize;
             default -> throw new RuntimeException("Test key size not defined for " + algo);
         };

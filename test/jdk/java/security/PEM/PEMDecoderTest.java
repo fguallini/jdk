@@ -26,6 +26,7 @@
 /*
  * @test
  * @bug 8298420
+ * @library /test/lib
  * @modules java.base/sun.security.pkcs
  *          java.base/sun.security.util
  * @summary Testing basic PEM API decoding
@@ -46,13 +47,17 @@ import java.util.Arrays;
 
 import sun.security.util.Pem;
 
+import static jdk.test.lib.Asserts.assertTrue;
+
 public class PEMDecoderTest {
 
     static HexFormat hex = HexFormat.of();
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         System.out.println("Decoder test:");
-        PEMData.entryList.forEach(PEMDecoderTest::test);
+        PEMData.entryList.forEach(entry -> test(entry, false));
+        System.out.println("Decoder test withFactory:");
+        PEMData.entryList.forEach(entry -> test(entry, true));
         System.out.println("Decoder test returning DEREncodable class:");
         PEMData.entryList.forEach(entry -> test(entry, DEREncodable.class));
         System.out.println("Decoder test with encrypted PEM:");
@@ -134,6 +139,8 @@ public class PEMDecoderTest {
         testPEMRecord(PEMData.ec25519priv);
         testPEMRecord(PEMData.ecCSR);
         testPEMRecord(PEMData.ecCSRWithData);
+//        validateDecodedKeyPair();
+        testDecodingX509EncodedKeySpec();
     }
 
     static void testInputStream() throws IOException {
@@ -257,13 +264,24 @@ public class PEMDecoderTest {
 
     // Change the Entry to use the given class as the expected class returned
     static DEREncodable test(PEMData.Entry entry, Class c) {
-        return test(entry.newClass(c));
+        return test(entry.newClass(c), false);
+    }
+
+    static DEREncodable test(PEMData.Entry entry) {
+        return test(entry, false);
     }
 
     // Run test with a given Entry
-    static DEREncodable test(PEMData.Entry entry) {
+    static DEREncodable test(PEMData.Entry entry, boolean withFactory) {
         try {
-            DEREncodable r = test(entry.pem(), entry.clazz(), PEMDecoder.of());
+            PEMDecoder pemDecoder;
+            if (withFactory) {
+                Provider provider = Security.getProvider(entry.provider());
+                pemDecoder = PEMDecoder.of().withFactory(provider);
+            } else {
+                pemDecoder = PEMDecoder.of();
+            }
+            DEREncodable r = test(entry.pem(), entry.clazz(), pemDecoder);
             System.out.println("PASS (" + entry.name() + ")");
             return r;
         } catch (Exception | AssertionError e) {
@@ -338,6 +356,42 @@ public class PEMDecoderTest {
             throw new AssertionError("Two decoding of the same" +
                 " key failed to match: ");
         }
+    }
+//
+//    private static void validateDecodedKeyPair() throws Exception {
+//        PEMData.Entry privEntry = PEMData.getEntry("privpem");
+//        PEMData.Entry pubEntry = PEMData.getEntry("pubrsapem");
+//
+//        byte[] data = "Test DATA".getBytes();
+//
+//        // Sign with the decoded private key
+//        Signature signature = Signature.getInstance("SHA256withRSA");
+//        signature.initSign(PEMDecoder.of().decode(privEntry.pem(), PrivateKey.class));
+//        signature.update(data);
+//        byte[] signedData = signature.sign();
+//
+//        // Verify with the decoded public key
+//        signature.initVerify(PEMDecoder.of().decode(pubEntry.pem(), PublicKey.class));
+//        signature.update(data);
+//        assertTrue(signature.verify(signedData));
+//    }
+
+    public static void testDecodingX509EncodedKeySpec() throws Exception {
+        Provider provider = Security.getProvider("SunRsaSign");
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", provider);
+        kpg.initialize(2048);
+        KeyPair kp = kpg.generateKeyPair();
+        String pemPublic = PEMEncoder.of().encodeToString(new X509EncodedKeySpec(kp.getPublic().getEncoded()));
+
+        String pemPublicNoMarker = pemPublic.replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("\\s+", "");
+        byte[] decodedPublic = Base64.getDecoder().decode(pemPublicNoMarker);
+        // Manually decode PEM into X509EncodedKeySpec - This works fine
+        X509EncodedKeySpec keySpecPublic = new X509EncodedKeySpec(decodedPublic);
+
+        // Using PEM API - java.lang.ClassCastException: Cannot cast sun.security.rsa.RSAPublicKeyImpl to java.security.spec.X509EncodedKeySpec
+        keySpecPublic = PEMDecoder.of().decode(pemPublic, X509EncodedKeySpec.class);
     }
 
     static void testClass(PEMData.Entry entry, Class clazz) throws IOException {

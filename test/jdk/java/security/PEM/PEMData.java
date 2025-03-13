@@ -27,6 +27,7 @@ import javax.crypto.EncryptedPrivateKeyInfo;
 import java.security.DEREncodable;
 import java.security.KeyPair;
 import java.security.PEMRecord;
+import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.*;
 import java.util.ArrayList;
@@ -45,7 +46,7 @@ class PEMData {
         KwDdi3cNwu7YYD/QtJ+9+AEBdoqhRANCAASL+REY4vvAI9M3gonaml5K3lRgHq5w
         +OO4oO0VNduC44gUN1nrk7/wdNSpL+xXNEX52Dsff+2RD/fop224ANvB
         -----END PRIVATE KEY-----
-        """, KeyPair.class);
+        """, KeyPair.class, "SunEC");
 
     public static final Entry rsapriv = new Entry("rsapriv",
         """
@@ -65,7 +66,7 @@ class PEMData {
         6onPAs4hkm+63dfzCojvEkALevO8J3OVX7YS5q9J1r75wDn60Ob0Zh+iiorpx8Ob
         WqcWcoJqfdLEyBT+
         -----END PRIVATE KEY-----
-        """, RSAPrivateKey.class);
+        """, RSAPrivateKey.class, "SunRsaSign");
 
     public static final Entry rsaprivbc = new Entry("rsaprivbc",
         """
@@ -85,14 +86,14 @@ class PEMData {
         6onPAs4hkm+63dfzCojvEkALevO8J3OVX7YS5q9J1r75wDn60Ob0Zh+iiorpx8Ob
         WqcWcoJqfdLEyBT+
         -----END PRIVATE KEY-----
-        """, RSAPrivateKey.class);
+        """, RSAPrivateKey.class, "SunRsaSign");
 
     public static final Entry ec25519priv = new Entry("ed25519priv",
         """
         -----BEGIN PRIVATE KEY-----
         MC4CAQAwBQYDK2VwBCIEIFFZsmD+OKk67Cigc84/2fWtlKsvXWLSoMJ0MHh4jI4I
         -----END PRIVATE KEY-----
-        """, EdECPrivateKey.class);
+        """, EdECPrivateKey.class, "SunEC");
 
     public static final Entry rsapub = new Entry("rsapub",
         """
@@ -102,7 +103,7 @@ class PEMData {
         MtJpIPIXynEqRy2mIw2GrKTtu3dqrW+ndarbD6D4yRY1hWHluiuOtzhxuueCuf9h
         XCYEHZS1cqd8wokFPwIDAQAB
         -----END PUBLIC KEY-----
-        """, RSAPublicKey.class);
+        """, RSAPublicKey.class, "SunRsaSign");
 
     public static final Entry rsapubbc = new Entry("rsapubbc",
         """
@@ -112,14 +113,14 @@ class PEMData {
         MtJpIPIXynEqRy2mIw2GrKTtu3dqrW+ndarbD6D4yRY1hWHluiuOtzhxuueCuf9h
         XCYEHZS1cqd8wokFPwIDAQAB
         -----END PUBLIC KEY-----
-        """, RSAPublicKey.class);
+        """, RSAPublicKey.class, "SunRsaSign");
 
     public static final Entry ecsecp256pub = new Entry("ecsecp256pub", """
         -----BEGIN PUBLIC KEY-----
         MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEi/kRGOL7wCPTN4KJ2ppeSt5UYB6u
         cPjjuKDtFTXbguOIFDdZ65O/8HTUqS/sVzRF+dg7H3/tkQ/36KdtuADbwQ==
         -----END PUBLIC KEY-----
-        """, ECPublicKey.class);
+        """, ECPublicKey.class, "SunEC");
 
     // EC key with explicit parameters -- Not currently supported by SunEC
     public static final String pubec_explicit = """
@@ -152,7 +153,7 @@ class PEMData {
         P4c4mySRy5N3plFQUp3pIB7wqshi1t6hkdg7gRGjMtJpIPIXynEqRy2mIw2GrKTtu3dqrW+ndarb
         D6D4yRY1hWHluiuOtzhxuueCuf9hXCYEHZS1cqd8wokFPwIDAQAB
         -----END PRIVATE KEY-----
-        """, KeyPair.class);
+        """, KeyPair.class, "SunRsaSign");
 
     public static final Entry oasrfc8410 = new Entry("oasrfc8410",
         """
@@ -161,7 +162,7 @@ class PEMData {
         oB8wHQYKKoZIhvcNAQkJFDEPDA1DdXJkbGUgQ2hhaXJzgSEAGb9ECWmEzf6FQbrB
         Z9w7lshQhqowtrbLDFw4rXAxZuE=
         -----END PRIVATE KEY-----
-        """, KeyPair.class);
+        """, KeyPair.class, "SunEC");
 
     public static final Entry rsaOpenSSL = new Entry("rsaOpenSSL",
         """
@@ -192,7 +193,7 @@ class PEMData {
         EcgIOtkvoTrJ9Cquvuj+O7/d2yNoH0SZQ4IYJKq47/Z4kKhwXzJnBCCCBKgkjfub
         RTQSNnSEgTaBD29l7FrhNRHX9lIKFZ23caCTBS6o3q3+KgPbq7ao
         -----END RSA PRIVATE KEY-----
-        """, RSAPrivateKey.class);
+        """, RSAPrivateKey.class, "SunRsaSign");
 
     static final Entry ed25519ep8 = new Entry("ed25519ep8",
         """
@@ -202,7 +203,7 @@ class PEMData {
         vdMyi46+Dw7cOjwEQLtx5ME0NOOo7vlCGm3H/4j+Tf5UXrMb1UrkPjqc8OiLbC0n
         IycFtI70ciPjgwDSjtCcPxR8fSxJPrm2yOJsRVo=
         -----END ENCRYPTED PRIVATE KEY-----
-        """, EdECPrivateKey.class, "fish".toCharArray());
+        """, EdECPrivateKey.class, "SunEC", "fish".toCharArray());
 
     // This is not meant to be decrypted and to stay as an EKPI
     static final Entry ed25519ekpi = new Entry("ed25519ekpi",
@@ -237,7 +238,7 @@ class PEMData {
         8gOYV33zkPhziWJt4uFMFIi7N2DLEk5UVZv1KTLZlfPl55DRs7j/Sb4vKHpB17AO
         meVknxVvifDVY0TIz57t28Accsk6ClBCxNPluPU/8YLGAZJYsdDXjGcndQ13s5G7
         -----END CERTIFICATE-----
-        """, X509Certificate.class);
+        """, X509Certificate.class, "SUN");
 
     static final Entry ecCert = new Entry("ecCert",
         """
@@ -249,7 +250,27 @@ class PEMData {
         lU3G9QAwCgYIKoZIzj0EAwIDSAAwRQIgMwYld7aBzkcRt9mn27YOed5+n0xN1y8Q
         VEcFjLI/tBYCIQDU3szDZ/PK2mUZwtgQxLqHdh+f1JY0UwQS6M8QUvoDHw==
         -----END CERTIFICATE-----
-        """, X509Certificate.class);
+        """, X509Certificate.class, "SUN");
+
+    private static final Entry rsaCrl = new Entry("rsaCrl",
+            """
+            -----BEGIN X509 CRL-----
+            MIIBRTCBrwIBATANBgkqhkiG9w0BAQUFADBMMQswCQYDVQQGEwJVUzEaMBgGA1UE
+            ChMRVGVzdCBDZXJ0aWZpY2F0ZXMxITAfBgNVBAMTGEJhc2ljIEhUVFAgVVJJIFBl
+            ZXIgMSBDQRcNMDUwNjAzMjE0NTQ3WhcNMTUwNjAxMjE0NTQ3WqAvMC0wHwYDVR0j
+            BBgwFoAUa+bxcvx1zVdUhvIEd9hcfbmFdw4wCgYDVR0UBAMCAQEwDQYJKoZIhvcN
+            AQEFBQADgYEAZ+21yt1pJn2FU6vBwpFtAKVeBCCCqJVFiRxT84XbUw0BpLrCFvlk
+            FOo6tC95aoV7vPGwOEyUNbKJJOCzLliIwV1PPfgZQV20xohSIPISHdUjmlyttglv
+            AuEvltGnbP7ENxw18HxvM20XmHz+akuFu6npI6MkBjfoxvlq1bcdTrI=
+            -----END X509 CRL-----
+            """, X509CRL.class, "SUN");
+
+    private static final Entry invalidPEM = new Entry("invalidPEM", """
+        -----BEGIN INVALID PEM-----
+        MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDBVS52ZSKZ0oES7twD2
+        GGwRIVu3uHlGIwlu0xzFe7sgIPntca2bHfYMhgGxrlCm0q+hZANiAAQNWgwWfLX8
+        8pYVjvwbfvDF9f+Oa9w6JjrfpWwFAUI6b1OPgrNUh+yXtUXnQNXnfUcIu0Os53bM
+        """, DEREncodable.class, null);
 
     // EC cert with explicit parameters -- Not currently supported by SunEC
     static final String ecCertEX = """
@@ -280,7 +301,7 @@ class PEMData {
         8pYVjvwbfvDF9f+Oa9w6JjrfpWwFAUI6b1OPgrNUh+yXtUXnQNXnfUcIu0Os53bM
         8fTqPkQl6RyWEDHeXqJK8zTBHMeBq9nLfDPSbzQgLDyC64Orn0D8exM=
         -----END PRIVATE KEY-----
-        """, KeyPair.class);
+        """, KeyPair.class, "SunEC");
 
     public static final Entry ecCSR = new Entry("ecCSR",
         """
@@ -297,7 +318,7 @@ class PEMData {
         MQYMBGZpc2gwCgYIKoZIzj0EAwIDRwAwRAIgUBTdrMDE4BqruYRh1rRyKQBf48WR
         kIX8R4dBK9h1VRcCIEBR2Mzvku/huTbWTwKVlXBZeEmwIlxKwpRepPtViXcW
         -----END CERTIFICATE REQUEST-----
-        """, PEMRecord.class);
+        """, PEMRecord.class, "SunEC");
 
     public static final String preData = "TEXT BLAH TEXT BLAH" +
         System.lineSeparator();
@@ -318,16 +339,17 @@ class PEMData {
         MQYMBGZpc2gwCgYIKoZIzj0EAwIDRwAwRAIgUBTdrMDE4BqruYRh1rRyKQBf48WR
         kIX8R4dBK9h1VRcCIEBR2Mzvku/huTbWTwKVlXBZeEmwIlxKwpRepPtViXcW
         -----END CERTIFICATE REQUEST-----
-        """ + postData, PEMRecord.class);
+        """ + postData, PEMRecord.class, "SunEC");
 
-    public record Entry(String name, String pem, Class clazz, char[] password,
+    public record Entry(String name, String pem, Class clazz, String provider, char[] password,
                         byte[] der) {
 
-        public Entry(String name, String pem, Class clazz, char[] password,
+        public Entry(String name, String pem, Class clazz, String provider, char[] password,
             byte[] der) {
             this.name = name;
             this.pem = pem;
             this.clazz = clazz;
+            this.provider = provider;
             this.password = password;
             if (pem != null && pem.length() > 0) {
                 String[] pemtext = pem.split("-----");
@@ -336,16 +358,16 @@ class PEMData {
                 this.der = null;
             }
         }
-        Entry(String name, String pem, Class clazz, char[] password) {
-            this(name, pem, clazz, password, null);
+        Entry(String name, String pem, Class clazz, String provider, char[] password) {
+            this(name, pem, clazz,provider, password, null);
         }
 
-        Entry(String name, String pem, Class clazz) {
-            this(name, pem, clazz, null, null);
+        Entry(String name, String pem, Class clazz, String provider) {
+            this(name, pem, clazz, provider, null);
         }
 
         public Entry newClass(String name, Class c) {
-            return new Entry(name, pem, c, password);
+            return new Entry(name, pem, c, provider, password);
         }
 
         public Entry newClass(Class c) {
@@ -355,19 +377,19 @@ class PEMData {
         Entry makeCRLF(String name) {
             return new Entry(name,
                 Pattern.compile(System.lineSeparator()).matcher(pem).replaceAll("\r\n"),
-                clazz, password());
+                clazz, provider, password());
         }
 
         Entry makeCR(String name) {
             return new Entry(name,
                 Pattern.compile(System.lineSeparator()).matcher(pem).replaceAll("\r"),
-                clazz, password());
+                clazz, provider, password());
         }
 
         Entry makeNoCRLF(String name) {
             return new Entry(name,
                 Pattern.compile(System.lineSeparator()).matcher(pem).replaceAll(""),
-                clazz, password());
+                clazz, provider, password());
         }
     }
 
@@ -410,6 +432,7 @@ class PEMData {
 
         certList.add(rsaCert);
         certList.add(ecCert);
+        certList.add(rsaCrl);
 
         entryList.addAll(pubList);
         entryList.addAll(privList);
@@ -423,5 +446,6 @@ class PEMData {
 
         failureEntryList.add(new Entry("emptyPEM", "", DEREncodable.class, null));
         failureEntryList.add(new Entry("nullPEM", null, DEREncodable.class, null));
+        failureEntryList.add(invalidPEM);
     }
 }
