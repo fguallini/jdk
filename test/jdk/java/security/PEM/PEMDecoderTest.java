@@ -45,6 +45,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.Arrays;
 
+import sun.security.pkcs.PKCS8Key;
 import sun.security.util.Pem;
 
 import static jdk.test.lib.Asserts.assertTrue;
@@ -100,8 +101,11 @@ public class PEMDecoderTest {
 
         System.out.println("Check a Signature/Verify op is successful:");
         PEMData.privList.forEach(PEMDecoderTest::testSignature);
-        PEMData.oasList.forEach(PEMDecoderTest::testSignature);
+        PEMData.oasList.stream().filter(e -> !e.name().endsWith("xdh"))
+                .forEach(PEMDecoderTest::testSignature);
 
+        System.out.println("Checking if decode() returns a PKCS8Key and can generate a pub");
+        PEMData.oasList.forEach(PEMDecoderTest::testPKCS8Key);
 
         // PEMRecord tests
         System.out.println("Checking if ecCSR:");
@@ -139,7 +143,6 @@ public class PEMDecoderTest {
         testPEMRecord(PEMData.ec25519priv);
         testPEMRecord(PEMData.ecCSR);
         testPEMRecord(PEMData.ecCSRWithData);
-//        validateDecodedKeyPair();
         testDecodingX509EncodedKeySpec();
     }
 
@@ -357,24 +360,19 @@ public class PEMDecoderTest {
                 " key failed to match: ");
         }
     }
-//
-//    private static void validateDecodedKeyPair() throws Exception {
-//        PEMData.Entry privEntry = PEMData.getEntry("privpem");
-//        PEMData.Entry pubEntry = PEMData.getEntry("pubrsapem");
-//
-//        byte[] data = "Test DATA".getBytes();
-//
-//        // Sign with the decoded private key
-//        Signature signature = Signature.getInstance("SHA256withRSA");
-//        signature.initSign(PEMDecoder.of().decode(privEntry.pem(), PrivateKey.class));
-//        signature.update(data);
-//        byte[] signedData = signature.sign();
-//
-//        // Verify with the decoded public key
-//        signature.initVerify(PEMDecoder.of().decode(pubEntry.pem(), PublicKey.class));
-//        signature.update(data);
-//        assertTrue(signature.verify(signedData));
-//    }
+
+    private static void testPKCS8Key(PEMData.Entry entry) {
+        try {
+            PKCS8Key key = PEMDecoder.of().decode(entry.pem(), PKCS8Key.class);
+            PKCS8EncodedKeySpec spec =
+                    new PKCS8EncodedKeySpec(key.getEncoded());
+
+            KeyFactory kf = KeyFactory.getInstance(key.getAlgorithm());
+            kf.generatePublic(spec);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 
     public static void testDecodingX509EncodedKeySpec() throws Exception {
         Provider provider = Security.getProvider("SunRsaSign");

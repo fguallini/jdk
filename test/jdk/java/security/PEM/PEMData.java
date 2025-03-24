@@ -164,6 +164,23 @@ class PEMData {
         -----END PRIVATE KEY-----
         """, KeyPair.class, "SunEC");
 
+    public static final Entry oasxdh = new Entry("oasxdh",
+        """
+        -----BEGIN PRIVATE KEY-----
+        MFECAQEwBQYDK2VuBCIEIIrMS7w5YxuBTyPFiaFvp6ILiGET7wY9ybk7Qqhe3hSq
+        gSEAB7ODPxRePrPnJMaj3f47blVx6c5bfxcllQzLp4bW5x4=
+        -----END PRIVATE KEY-----
+        """, KeyPair.class, "SunEC");
+
+    public static final Entry oasec = new Entry("oasec",
+        """
+        -----BEGIN PRIVATE KEY-----
+        MIGFAgEBMBMGByqGSM49AgEGCCqGSM49AwEHBCcwJQIBAQQgkGEVbZE1yAiO11Ya
+        eepcrBQL+HpVE4fy0V6jbpJcmkiBQgAERCqYYmN9uNT9Z1O2Z2VC3Zag9eUAhz7G
+        p8DqC21VrIgpqVQ4BrcWsieNg9fSd4N2hgfMpk9PCQwJQ8ifCMiBVQ==
+        -----END PRIVATE KEY-----
+        """, KeyPair.class, "SunEC");
+
     public static final Entry rsaOpenSSL = new Entry("rsaOpenSSL",
         """
         -----BEGIN RSA PRIVATE KEY-----
@@ -429,6 +446,8 @@ class PEMData {
         privList.add(rsaOpenSSL);
         oasList.add(oasrfc8410);
         oasList.add(oasbcpem);
+        oasList.add(oasec);
+        oasList.add(oasxdh);
 
         certList.add(rsaCert);
         certList.add(ecCert);
