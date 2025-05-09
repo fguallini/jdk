@@ -26,11 +26,13 @@
 /*
  * @test
  * @bug 8298420
+ * @library /test/lib
  * @summary Testing basic PEM API encoding
  * @enablePreview
  * @modules java.base/sun.security.util
  */
 
+import jdk.test.lib.Asserts;
 import sun.security.util.Pem;
 
 import javax.crypto.EncryptedPrivateKeyInfo;
@@ -39,8 +41,17 @@ import javax.crypto.spec.PBEParameterSpec;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+
+import jdk.test.lib.security.SecurityUtils;
+import static jdk.test.lib.Asserts.assertThrows;
 
 public class PEMEncoderTest {
 
@@ -68,7 +79,12 @@ public class PEMEncoderTest {
         System.out.println("New instance re-encode testToString:");
         keymap.keySet().stream().forEach(key -> testToString(key,
             PEMEncoder.of()));
-
+        System.out.println("Same instance Encoder testEncodedKeySpec:");
+        testEncodedKeySpec(encoder);
+        System.out.println("New instance Encoder testEncodedKeySpec:");
+        testEncodedKeySpec(PEMEncoder.of());
+        System.out.println("Same instance Encoder testEmptyKey:");
+        testEmptyAndNullKey(encoder);
         keymap = generateObjKeyMap(PEMData.encryptedList);
         System.out.println("Same instance Encoder match test:");
         keymap.keySet().stream().forEach(key -> testEncryptedMatch(key, encoder));
@@ -86,6 +102,9 @@ public class PEMEncoderTest {
                 throw new Exception("Should have been a NullPointerException thrown");
             }
         }
+
+        System.out.println("Same instance testThreadSafety:");
+        testThreadSafety(encoder);
     }
 
     static Map generateObjKeyMap(List<PEMData.Entry> list) {
@@ -196,6 +215,49 @@ public class PEMEncoderTest {
         System.out.println("PASS: " + entry.name());
     }
 
+    // this test that keys can be encoded and decoded safely in a concurrent environment
+    static void testThreadSafety(PEMEncoder pemEncoder) throws Exception {
+        try(ExecutorService ex = Executors.newFixedThreadPool(5)) {
+            List<PublicKey> keys = new ArrayList<>();
+            int count = 50;
+            List<String> encoded = Collections.synchronizedList(new ArrayList<>());
+            List<String> decoded = Collections.synchronizedList(new ArrayList<>());
+            final CountDownLatch encodingComplete = new CountDownLatch(count);
+            final CountDownLatch decodingComplete = new CountDownLatch(count);
+
+            for (int i = 0 ; i < count ; i++) {
+                KeyPair kp = getKeyPair();
+                keys.add(kp.getPublic());
+                ex.submit(() -> {
+                    encoded.add(pemEncoder.encodeToString(kp.getPublic()));
+                    encodingComplete.countDown();
+                });
+            }
+            encodingComplete.await();
+
+            PEMDecoder decoder = PEMDecoder.of();
+            for (String pem : encoded) {
+                ex.submit(() -> {
+                    decoded.add(decoder.decode(pem, PublicKey.class).toString());
+                    decodingComplete.countDown();
+                });
+            }
+
+            decodingComplete.await();
+
+            // verify all keys were properly encoded and decoded comparing with the original list
+            for (PublicKey kp : keys) {
+                if (!decoded.contains(kp.toString())) {
+                    throw new RuntimeException("a key was not properly encoded and decoded: " + decoded);
+                }
+                // to avoid duplication
+                decoded.remove(kp.toString());
+            }
+        }
+
+        System.out.println("PASS: testThreadSafety");
+    }
+
     static void checkResults(PEMData.Entry entry, String result) {
         String pem = new String(entry.pem());
         // The below matches the \r\n generated PEM with the PEM passed
@@ -230,5 +292,42 @@ public class PEMEncoderTest {
             }
         }
     }
-}
+    static void testEncodedKeySpec(PEMEncoder encoder) throws NoSuchAlgorithmException {
+        KeyPair kp = getKeyPair();
+        encoder.encodeToString(new X509EncodedKeySpec(kp.getPublic().getEncoded()));
+        encoder.encodeToString((new PKCS8EncodedKeySpec(kp.getPrivate().getEncoded())));
+        System.out.println("PASS: testEncodedKeySpec");
+    }
 
+    private static void testEmptyAndNullKey(PEMEncoder encoder) throws NoSuchAlgorithmException {
+        KeyPair kp = getKeyPair();
+        assertThrows(IllegalArgumentException.class,() -> encoder.encode(
+                new KeyPair(kp.getPublic(), new EmptyKey())));
+        assertThrows(IllegalArgumentException.class,() -> encoder.encode(
+                new KeyPair(kp.getPublic(), null)));
+
+        assertThrows(IllegalArgumentException.class,() -> encoder.encode(
+                new KeyPair(new EmptyKey(), kp.getPrivate())));
+        assertThrows(IllegalArgumentException.class,() -> encoder.encode(
+                new KeyPair(null, kp.getPrivate())));
+        System.out.println("PASS: testEmptyKey");
+    }
+
+    private static KeyPair getKeyPair() throws NoSuchAlgorithmException {
+        Provider provider = Security.getProvider("SunRsaSign");
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", provider);
+        kpg.initialize(SecurityUtils.getTestKeySize("RSA"));
+        return kpg.generateKeyPair();
+    }
+
+    private static class EmptyKey implements PublicKey, PrivateKey {
+        @Override
+        public String getAlgorithm() { return "Test"; }
+
+        @Override
+        public String getFormat() { return "Test"; }
+
+        @Override
+        public byte[] getEncoded() { return new byte[0]; }
+    }
+}
