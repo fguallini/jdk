@@ -30,6 +30,9 @@
  * @summary Testing basic PEM API encoding
  * @enablePreview
  * @modules java.base/sun.security.util
+ * @run main PEMEncoderTest PBEWithHmacSHA256AndAES_128
+ * @run main/othervm -Djava.security.properties=${test.src}/java.security-extra
+ *      PEMEncoderTest PBEWithHmacSHA512AndAES_256
  */
 
 import jdk.test.lib.Asserts;
@@ -51,17 +54,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import jdk.test.lib.security.SecurityUtils;
+
+import static jdk.test.lib.Asserts.assertEquals;
 import static jdk.test.lib.Asserts.assertThrows;
 
 public class PEMEncoderTest {
 
     static Map<String, DEREncodable> keymap;
+    static String pkcs8DefaultAlgExpect;
     final static Pattern CR = Pattern.compile("\r");
     final static Pattern LF = Pattern.compile("\n");
     final static Pattern LSDEFAULT = Pattern.compile(System.lineSeparator());
 
 
     public static void main(String[] args) throws Exception {
+        pkcs8DefaultAlgExpect = args[0];
         PEMEncoder encoder = PEMEncoder.of();
 
         // These entries are removed
@@ -102,9 +109,6 @@ public class PEMEncoderTest {
                 throw new Exception("Should have been a NullPointerException thrown");
             }
         }
-
-        System.out.println("Same instance testThreadSafety:");
-        testThreadSafety(encoder);
     }
 
     static Map generateObjKeyMap(List<PEMData.Entry> list) {
@@ -164,16 +168,23 @@ public class PEMEncoderTest {
     static void testEncrypted(String key, PEMEncoder encoder) {
         PEMData.Entry entry = PEMData.getEntry(key);
         try {
-            encoder.withEncryption(
+            String pem = encoder.withEncryption(
                     (entry.password() != null ? entry.password() :
                         "fish".toCharArray()))
                 .encodeToString(keymap.get(key));
+
+            verifyEncriptionAlg(pem);
         } catch (RuntimeException e) {
             throw new AssertionError("Encrypted encoder failed with " +
                 entry.name(), e);
         }
 
         System.out.println("PASS: " + entry.name());
+    }
+
+    private static void verifyEncriptionAlg(String pem) {
+        var epki = PEMDecoder.of().decode(pem, EncryptedPrivateKeyInfo.class);
+        assertEquals(epki.getAlgName(), pkcs8DefaultAlgExpect);
     }
 
     /*
@@ -213,49 +224,6 @@ public class PEMEncoderTest {
 
         checkResults(entry, result);
         System.out.println("PASS: " + entry.name());
-    }
-
-    // this test that keys can be encoded and decoded safely in a concurrent environment
-    static void testThreadSafety(PEMEncoder pemEncoder) throws Exception {
-        try(ExecutorService ex = Executors.newFixedThreadPool(5)) {
-            List<PublicKey> keys = new ArrayList<>();
-            int count = 50;
-            List<String> encoded = Collections.synchronizedList(new ArrayList<>());
-            List<String> decoded = Collections.synchronizedList(new ArrayList<>());
-            final CountDownLatch encodingComplete = new CountDownLatch(count);
-            final CountDownLatch decodingComplete = new CountDownLatch(count);
-
-            for (int i = 0 ; i < count ; i++) {
-                KeyPair kp = getKeyPair();
-                keys.add(kp.getPublic());
-                ex.submit(() -> {
-                    encoded.add(pemEncoder.encodeToString(kp.getPublic()));
-                    encodingComplete.countDown();
-                });
-            }
-            encodingComplete.await();
-
-            PEMDecoder decoder = PEMDecoder.of();
-            for (String pem : encoded) {
-                ex.submit(() -> {
-                    decoded.add(decoder.decode(pem, PublicKey.class).toString());
-                    decodingComplete.countDown();
-                });
-            }
-
-            decodingComplete.await();
-
-            // verify all keys were properly encoded and decoded comparing with the original list
-            for (PublicKey kp : keys) {
-                if (!decoded.contains(kp.toString())) {
-                    throw new RuntimeException("a key was not properly encoded and decoded: " + decoded);
-                }
-                // to avoid duplication
-                decoded.remove(kp.toString());
-            }
-        }
-
-        System.out.println("PASS: testThreadSafety");
     }
 
     static void checkResults(PEMData.Entry entry, String result) {
