@@ -88,7 +88,7 @@ public class PEMMultiThreadTest {
     }
 
     private static KeyPair getKeyPair() throws NoSuchAlgorithmException {
-        String alg = "RSA";
+        String alg = "EC";
         KeyPairGenerator kpg = KeyPairGenerator.getInstance(alg);
         kpg.initialize(jdk.test.lib.security.SecurityUtils.getTestKeySize(alg));
         return kpg.generateKeyPair();
