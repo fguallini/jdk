@@ -334,6 +334,18 @@ class PEMData {
         8pYVjvwbfvDF9f+Oa9w6JjrfpWwFAUI6b1OPgrNUh+yXtUXnQNXnfUcIu0Os53bM
         """, DEREncodable.class, null);
 
+    private static final Entry invalidHeader = new Entry("invalidHeader", """
+        ---BEGIN PRIVATE KEY---
+        MC4CAQAwBQYDK2VwBCIEIFFZsmD+OKk67Cigc84/2fWtlKsvXWLSoMJ0MHh4jI4I
+        -----END PRIVATE KEY-----
+        """, DEREncodable.class, null);
+
+    private static final Entry invalidFooter = new Entry("invalidFooter", """
+        -----BEGIN PRIVATE KEY-----
+        MC4CAQAwBQYDK2VwBCIEIFFZsmD+OKk67Cigc84/2fWtlKsvXWLSoMJ0MHh4jI4I
+        ---END PRIVATE KEY---
+        """, DEREncodable.class, null);
+
     private static final Entry incorrectFooter = new Entry("incorrectFooter", """
         -----BEGIN PRIVATE KEY-----
         MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDBVS52ZSKZ0oES7twD2
@@ -422,7 +434,8 @@ class PEMData {
             this.clazz = clazz;
             this.provider = provider;
             this.password = password;
-            if (pem != null && pem.length() > 0) {
+            if (pem != null && pem.length() > 0 &&
+                    !name.contains("incorrect") && !name.contains("invalid")) {
                 String[] pemtext = pem.split("-----");
                 this.der = Base64.getMimeDecoder().decode(pemtext[2]);
             } else {
@@ -523,5 +536,7 @@ class PEMData {
         failureEntryList.add(new Entry("nullPEM", null, DEREncodable.class, null));
         failureEntryList.add(incorrectFooter);
         failureEntryList.add(invalidPEM);
+        failureEntryList.add(invalidHeader);
+        failureEntryList.add(invalidFooter);
     }
 }
