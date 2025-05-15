@@ -44,42 +44,46 @@ import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * {@code PEMEncoder} is used for encoding Privacy-Enhanced Mail (PEM) data.
- * PEM is a textual encoding used to store and transfer security
+ * {@code PEMEncoder} implements an encoder for Privacy-Enhanced Mail (PEM)
+ * data.  PEM is a textual encoding used to store and transfer security
  * objects, such as asymmetric keys, certificates, and certificate revocation
  * lists (CRL).  It is defined in RFC 1421 and RFC 7468.  PEM consists of a
  * Base64-formatted binary encoding enclosed by a type-identifying header
  * and footer.
  *
- * <p> Encoding may be performed on Java Cryptographic Extension (JCE) objects
- * that implement {@link DEREncodable}.
+ * <p> Encoding may be performed on Java API cryptographic objects that
+ * implement {@link DEREncodable}.
  *
- * <p> Encrypted private key PEM data can be built by encoding with a
- * {@code PEMEncoder} instance returned by {@linkplain #withEncryption(char[])}
- * or by encoding an {@link EncryptedPrivateKeyInfo} .
+ * <p> Private keys can be encrypted and encoded by configuring a
+ * {@code PEMEncoder} with the {@linkplain #withEncryption(char[])} method,
+ * which takes a password and returns a new {@code PEMEncoder} instance
+ * configured to encrypt the key with that password. Alternatively, a
+ * private key encrypted as an {@code EncryptedKeyInfo} object can be encoded
+ * directly to PEM by passing it to the {@code encode} or
+ * {@code encodeToString} methods.
  *
- * <p> PKCS #8 2.0 allows OneAsymmetricKey encoding, which may contain both
- * private and public keys in the same PEM. This is supported by using the
- * {@link KeyPair} class with the encode methods.
+ * <p> PKCS #8 2.0 defines the ASN.1 OneAsymmetricKey structure, which may
+ * contain both private and public keys.
+ * {@link KeyPair} objects passed to the {@code encode} or
+ * {@code encodeToString} methods are encoded as a
+ * OneAsymmetricKey structure using the "PRIVATE KEY" type.
  *
  * <p> When encoding a {@link PEMRecord}, the API surrounds the
- * {@linkplain PEMRecord#pem()} with a generated the PEM header and footer
- * from {@linkplain PEMRecord#type()}.  It will not check the validity of
- * the data.
+ * {@linkplain PEMRecord#pem()} with the PEM header and footer
+ * from {@linkplain PEMRecord#type()}. {@linkplain PEMRecord#leadingData()} is
+ * not included in the encoding.  {@code PEMRecord} will not perform
+ * validity checks on the data.
  *
- * <p>{@code String} values encoded use character set
- * {@link java.nio.charset.StandardCharsets#ISO_8859_1 ISO-8859-1}.
+ * <p> This class is immutable and thread-safe.
  *
- * <p>This class is immutable and thread-safe.
- *
- * <p>Here is an example of encoding a {@code PrivateKey} object:
+ * <p> Here is an example of encoding a {@code PrivateKey} object:
  * {@snippet lang = java:
  *     PEMEncoder pe = PEMEncoder.of();
  *     byte[] pemData = pe.encode(privKey);
  * }
  *
- * <p>To make the {@code PEMEncoder} encrypt the above private key, only the
- * encryption method is needed.
+ * <p> Here is an example that encrypts and encodes a private key using the
+ * specified password:
  * {@snippet lang = java:
  *     PEMEncoder pe = PEMEncoder.of().withEncryption(password);
  *     byte[] pemData = pe.encode(privKey);
@@ -91,8 +95,6 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @spec https://www.rfc-editor.org/info/rfc1421
  *       RFC 1421: Privacy Enhancement for Internet Electronic Mail
- * @spec https://www.rfc-editor.org/info/rfc5958
- *       RFC 5958: Asymmetric Key Packages
  * @spec https://www.rfc-editor.org/info/rfc7468
  *       RFC 7468: Textual Encodings of PKIX, PKCS, and CMS Structures
  *
@@ -113,7 +115,7 @@ public final class PEMEncoder {
     private final ReentrantLock lock;
 
     /**
-     * Instantiate a new {@code PEMEncoder} for Encrypted Private Keys.
+     * Instantiate a {@code PEMEncoder} for Encrypted Private Keys.
      *
      * @param pbe contains the password spec used for encryption.
      */
@@ -124,23 +126,23 @@ public final class PEMEncoder {
     }
 
     /**
-     * Returns a new instance of {@code PEMEncoder}.
+     * Returns a instance of {@code PEMEncoder}.
      *
-     * @return new {@code PEMEncoder} instance
+     * @return a {@code PEMEncoder}
      */
     public static PEMEncoder of() {
         return PEM_ENCODER;
     }
 
     /**
-     * Encode the specified {@code DEREncodable} and return the PEM encoding in a
+     * Encodes the specified {@code DEREncodable} and returns a PEM encoded
      * string.
      *
-     * @param de the {@code DEREncodable} to be encoded.
-     * @return PEM encoding in a string
-     * @throws IllegalArgumentException when encoding the {@code DEREncodable}
-     * fails.
-     * @throws NullPointerException if {@code de} is {@code null}.
+     * @param de the {@code DEREncodable} to be encoded
+     * @return a {@code String} containing the PEM encoded data
+     * @throws IllegalArgumentException if the {@code DEREncodable} cannot be
+     * encoded
+     * @throws NullPointerException if {@code de} is {@code null}
      * @see #withEncryption(char[])
      */
     public String encodeToString(DEREncodable de) {
@@ -202,13 +204,14 @@ public final class PEMEncoder {
     }
 
     /**
-     * Encodes the specified {@code DEREncodable} into PEM.
+     * Encodes the specified {@code DEREncodable} and returns the PEM encoding
+     * in a byte array.
      *
-     * @param de the {@code DEREncodable} to be encoded.
-     * @return PEM encoded byte array
-     * @throws IllegalArgumentException when encoding the {@code DEREncodable}
-     * fails.
-     * @throws NullPointerException if {@code de} is {@code null}.
+     * @param de the {@code DEREncodable} to be encoded
+     * @return a PEM encoded byte array
+     * @throws IllegalArgumentException if the {@code DEREncodable} cannot be
+     * encoded
+     * @throws NullPointerException if {@code de} is {@code null}
      * @see #withEncryption(char[])
      */
     public byte[] encode(DEREncodable de) {
@@ -216,26 +219,30 @@ public final class PEMEncoder {
     }
 
     /**
-     * Returns a new {@code PEMEncoder} instance configured with the default
-     * encryption algorithm and a given password.
+     * Returns a new {@code PEMEncoder} instance configured for encryption
+     * with the default algorithm and a given password.
      *
      * <p> Only {@link PrivateKey} objects can be encrypted with this newly
      * configured instance.  Encoding other {@link DEREncodable} objects will
-     * throw an{@code IllegalArgumentException}.
+     * throw an {@code IllegalArgumentException}.
      *
-     * @implNote The default algorithm is defined by Security Property {@code
-     * jdk.epkcs8.defaultAlgorithm} using default password-based encryption
-     * parameters by the supporting provider.  To configure all the encryption
-     * options see {@link EncryptedPrivateKeyInfo#encryptKey(PrivateKey, Key,
+     * @implNote
+     * The default password-based encryption algorithm is defined
+     * by the {@code jdk.epkcs8.defaultAlgorithm} security property and
+     * uses the default encryption parameters of the provider that is selected.
+     * For greater flexibility with encryption options and parameters, use
+     * {@link EncryptedPrivateKeyInfo#encryptKey(PrivateKey, Key,
      * String, AlgorithmParameterSpec, Provider, SecureRandom)} and use the
      * returned object with {@link #encode(DEREncodable)}.
      *
-     * @param password sets the encryption password.  The array is cloned and
-     *                stored in the new instance. {@code null} is a valid value.
-     * @return new configured {@code PEMEncoder} instance
+     * @param password the encryption password.  The array is cloned and
+     *                stored in the new instance.
+     * @return a new configured {@code PEMEncoder} instance
+     * @throws NullPointerException when password is {@code null}
      */
     public PEMEncoder withEncryption(char[] password) {
         // PBEKeySpec clones the password
+        Objects.requireNonNull(password, "password cannot be null.");
         return new PEMEncoder(new PBEKeySpec(password));
     }
 
