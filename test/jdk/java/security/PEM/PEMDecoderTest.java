@@ -44,6 +44,7 @@ import java.security.spec.*;
 import java.util.*;
 import java.util.Arrays;
 
+import jdk.test.lib.Asserts;
 import sun.security.pkcs.PKCS8Key;
 import sun.security.util.Pem;
 
@@ -205,6 +206,9 @@ public class PEMDecoderTest {
             throw new AssertionError("PEMRecord expected pem " +
                 "does not match.");
         }
+
+        // binary encodings must be equal
+        Asserts.assertEqualsByteArray(entry.der(), r.getEncoded());
 
         boolean result = switch(r.type()) {
             case Pem.PRIVATE_KEY ->

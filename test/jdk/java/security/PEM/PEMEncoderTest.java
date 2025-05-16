@@ -93,8 +93,13 @@ public class PEMEncoderTest {
         System.out.println("Same instance Encoder testEmptyKey:");
         testEmptyAndNullKey(encoder);
         keymap = generateObjKeyMap(PEMData.encryptedList);
-        System.out.println("Same instance Encoder match test:");
-        keymap.keySet().stream().forEach(key -> testEncryptedMatch(key, encoder));
+        System.out.println("Same instance Encoder match test, no provider and with Algo :");
+        keymap.keySet().stream().forEach(key -> testEncryptedMatch(key, encoder, false, true));
+        System.out.println("Same instance Encoder match test, no provider and no algo :");
+        keymap.keySet().stream().forEach(key -> testEncryptedMatch(key, encoder, false, false));
+        System.out.println("Same instance Encoder match test, with provider :");
+        keymap.keySet().stream().filter(key -> "SUN".equals( PEMData.getEntry(key).provider()))
+                .forEach(key -> testEncryptedMatch(key, encoder, true, false));
         System.out.println("Same instance Encoder new withEnc test:");
         keymap.keySet().stream().forEach(key -> testEncrypted(key, encoder));
         System.out.println("New instance Encoder and withEnc test:");
@@ -203,18 +208,24 @@ public class PEMEncoderTest {
         System.out.println("PASS: " + entry.name());
     }
 
-    static void testEncryptedMatch(String key, PEMEncoder encoder) {
+    static void testEncryptedMatch(String key, PEMEncoder encoder, boolean withProvider, boolean withAlgo) {
         String result;
         PEMData.Entry entry = PEMData.getEntry(key);
+        Provider provider = withProvider ? Security.getProvider(entry.provider()) : null;
+
         try {
             PrivateKey pkey = (PrivateKey) keymap.get(key);
             EncryptedPrivateKeyInfo ekpi = PEMDecoder.of().decode(entry.pem(),
                 EncryptedPrivateKeyInfo.class);
             if (entry.password() != null) {
-                EncryptedPrivateKeyInfo.encryptKey(pkey, entry.password(),
-                    Pem.DEFAULT_ALGO, ekpi.getAlgParameters().
-                        getParameterSpec(PBEParameterSpec.class),
-                    null);
+                if (withAlgo) {
+                    EncryptedPrivateKeyInfo.encryptKey(pkey, entry.password(),
+                            Pem.DEFAULT_ALGO, ekpi.getAlgParameters().
+                                    getParameterSpec(PBEParameterSpec.class),
+                            provider);
+                } else {
+                    EncryptedPrivateKeyInfo.encryptKey(pkey, entry.password());
+                }
             }
             result = encoder.encodeToString(ekpi);
         } catch (RuntimeException | InvalidParameterSpecException e) {
