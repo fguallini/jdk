@@ -35,7 +35,6 @@
  *      PEMEncoderTest PBEWithHmacSHA512AndAES_256
  */
 
-import jdk.test.lib.Asserts;
 import sun.security.util.Pem;
 
 import javax.crypto.EncryptedPrivateKeyInfo;
@@ -47,10 +46,6 @@ import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import jdk.test.lib.security.SecurityUtils;

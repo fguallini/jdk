@@ -34,9 +34,7 @@
  */
 
 import java.security.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,39 +46,40 @@ public class PEMMultiThreadTest {
     public static void main(String[] args) throws Exception {
         PEMEncoder encoder = PEMEncoder.of();
         try(ExecutorService ex = Executors.newFixedThreadPool(THREAD_COUNT)) {
-            List<PublicKey> keys = new ArrayList<>();
-            List<String> encoded = Collections.synchronizedList(new ArrayList<>());
-            List<String> decoded = Collections.synchronizedList(new ArrayList<>());
+            Map<Integer, PublicKey> keys = new HashMap<>();
+            Map<Integer, String> encoded = Collections.synchronizedMap(new HashMap<>());
+            Map<Integer, String> decoded = Collections.synchronizedMap(new HashMap<>());
             final CountDownLatch encodingComplete = new CountDownLatch(KEYS_COUNT);
             final CountDownLatch decodingComplete = new CountDownLatch(KEYS_COUNT);
 
             for (int i = 0 ; i < KEYS_COUNT ; i++) {
+                final int finalI = i;
                 KeyPair kp = getKeyPair();
-                keys.add(kp.getPublic());
+                keys.put(finalI, kp.getPublic());
+
                 ex.submit(() -> {
-                    encoded.add(encoder.encodeToString(kp.getPublic()));
+                    encoded.put(finalI, encoder.encodeToString(kp.getPublic()));
                     encodingComplete.countDown();
                 });
             }
             encodingComplete.await();
 
             PEMDecoder decoder = PEMDecoder.of();
-            for (String pem : encoded) {
+            for (Map.Entry<Integer, String> entry : encoded.entrySet()) {
                 ex.submit(() -> {
-                    decoded.add(decoder.decode(pem, PublicKey.class).toString());
+                    decoded.put(entry.getKey(), decoder.decode(entry.getValue(), PublicKey.class)
+                            .toString());
                     decodingComplete.countDown();
                 });
             }
 
             decodingComplete.await();
 
-            // verify all keys were properly encoded and decoded comparing with the original list
-            for (PublicKey kp : keys) {
-                if (!decoded.contains(kp.toString())) {
+            // verify all keys were properly encoded and decoded comparing with the original key map
+            for (Map.Entry<Integer, PublicKey> kp : keys.entrySet()) {
+                if (!decoded.get(kp.getKey()).equals(kp.getValue().toString())) {
                     throw new RuntimeException("a key was not properly encoded and decoded: " + decoded);
                 }
-                // to avoid duplication
-                decoded.remove(kp.toString());
             }
         }
 
