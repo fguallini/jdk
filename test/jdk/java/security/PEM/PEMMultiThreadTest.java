@@ -27,7 +27,7 @@
  * @test
  * @bug 8298420
  * @library /test/lib
- * @summary Testing basic PEM API encoding
+ * @summary Testing PEM API is thread safe
  * @enablePreview
  * @modules java.base/sun.security.util
  * @run main PEMMultiThreadTest
